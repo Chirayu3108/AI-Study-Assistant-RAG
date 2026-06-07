@@ -1,0 +1,13 @@
+langchain 
+langchain-core
+langchain-community
+pypdf # these are specifically for reading pdfs
+pymupdf
+
+#for Embeddings
+sentence-transformers # for generating embeddings using pre-trained models from hugging face
+faiss-cpu # vector database for storing embeddings
+chromadb # vector database for storing embeddings
+
+langchain-groq
+python-dotenv
