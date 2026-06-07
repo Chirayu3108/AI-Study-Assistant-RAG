@@ -1,13 +1,27 @@
-langchain 
+# Core LangChain packages
+langchain
 langchain-core
 langchain-community
-pypdf # these are specifically for reading pdfs
-pymupdf
-
-#for Embeddings
-sentence-transformers # for generating embeddings using pre-trained models from hugging face
-faiss-cpu # vector database for storing embeddings
-chromadb # vector database for storing embeddings
-
+langchain-text-splitters
 langchain-groq
+
+# Document loaders
+pypdf
+pymupdf
+docx2txt
+unstructured[xlsx]  # for Excel support
+
+# Embeddings
+sentence-transformers
+
+# Vector database
+chromadb
+
+# LLM provider
+groq
+
+# Frontend
+streamlit
+
+# Utilities
 python-dotenv

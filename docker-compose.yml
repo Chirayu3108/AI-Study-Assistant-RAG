@@ -1,0 +1,12 @@
+services:
+  study-assistant:
+    build: .
+    container_name: ai-study-assistant
+    ports:
+      - "8501:8501"  # Streamlit runs here
+    volumes:
+      # persist the vector store on the host so data survives container restarts
+      - ./data:/app/data
+    env_file:
+      - .env  # loads GROQ_API_KEY from your local .env file
+    restart: unless-stopped

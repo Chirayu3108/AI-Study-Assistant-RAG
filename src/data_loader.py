@@ -1,48 +1,76 @@
 from pathlib import Path
 from typing import List, Any
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, CSVLoader
-from langchain_community.document_loaders import Docx2txtLoader
+from langchain_community.document_loaders import (
+    PyMuPDFLoader,
+    TextLoader,
+    CSVLoader,
+    Docx2txtLoader,
+    JSONLoader,
+)
 from langchain_community.document_loaders.excel import UnstructuredExcelLoader
-from langchain_community.document_loaders import JSONLoader
 
-def load_all_documents(data_dir: str) -> List[Any]:
-    '''
-    Load all supported files from the data directory and conver to LangChain document structure
-    Supported: CSV, PDF, TXT, EXCEL, WORD, JSON
 
-    '''
+def load_documents_from_path(file_path: str) -> List[Any]:
+    """
+    Load a single file based on its extension.
+    Returns a list of LangChain Document objects.
+    """
+    path = Path(file_path)
+    ext = path.suffix.lower()
+    documents = []
 
-    # Use project root data folder
-    data_path = Path(data_dir).resolve()
-    print(f"[DEBUG] Data Path: {data_path}")
-    documents =[]
+    try:
+        # pick the right loader based on file type
+        if ext == ".pdf":
+            loader = PyMuPDFLoader(str(path))
+        elif ext == ".txt":
+            loader = TextLoader(str(path))
+        elif ext == ".csv":
+            loader = CSVLoader(str(path))
+        elif ext in (".docx", ".doc"):
+            loader = Docx2txtLoader(str(path))
+        elif ext in (".xlsx", ".xls"):
+            loader = UnstructuredExcelLoader(str(path))
+        elif ext == ".json":
+            # jq_schema="." means load the entire JSON content as text
+            loader = JSONLoader(str(path), jq_schema=".", text_content=False)
+        else:
+            print(f"[Warning] Unsupported file type: {ext} — skipping {path.name}")
+            return []
 
-    #PDF files
-    pdf_files = list(data_path.glob('**/*.pdf'))
-   # print(f'[DEBUG] Found {len(pdf_files)} PDF files: {str(f) for f in pdf_files}')
-    for pdf_file in pdf_files:
-        print(f"[DEBUG] Loading PDF: ") 
-        try:
-            loader = PyPDFLoader(str(pdf_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} PDF docs from {pdf_file}")
-            documents.extend(loaded)
-        except Exception as e:
-            print(f"[Error] Failed to load PDF {pdf_file}: {e}")
-            
+        loaded = loader.load()
 
-    # TEXT files
-    #PDF files
-    text_files = list(data_path.glob('**/*.txt'))
-   # print(f'[DEBUG] Found {len(pdf_files)} PDF files: {str(f) for f in pdf_files}')
-    for text_file in text_files:
-        print(f"[DEBUG] Loading Text File: ") 
-        try:
-            loader = TextLoader(str(text_file))
-            loaded = loader.load()
-            print(f"[DEBUG] Loaded {len(loaded)} Text file docs from {text_file}")
-            documents.extend(loaded)
-        except Exception as e:
-            print(f"[Error] Failed to load text file {text_file}: {e}")
+        # tag each doc with source file info so we know where it came from
+        for doc in loaded:
+            doc.metadata["source_file"] = path.name
+            doc.metadata["file_type"] = ext.lstrip(".")
+
+        documents.extend(loaded)
+        print(f"[Loaded] {path.name} → {len(loaded)} document(s)")
+
+    except Exception as e:
+        print(f"[Error] Could not load {path.name}: {e}")
 
     return documents
+
+
+def load_all_documents(data_dir: str) -> List[Any]:
+    """
+    Recursively scan a directory and load all supported files.
+    Supported: PDF, TXT, CSV, DOCX, XLSX, JSON
+    """
+    data_path = Path(data_dir).resolve()
+    print(f"[Loader] Scanning: {data_path}")
+
+    # all supported extensions
+    supported_extensions = ["*.pdf", "*.txt", "*.csv", "*.docx", "*.doc", "*.xlsx", "*.xls", "*.json"]
+
+    all_documents = []
+
+    for pattern in supported_extensions:
+        for file_path in data_path.rglob(pattern):
+            docs = load_documents_from_path(str(file_path))
+            all_documents.extend(docs)
+
+    print(f"[Loader] Total documents loaded: {len(all_documents)}")
+    return all_documents
